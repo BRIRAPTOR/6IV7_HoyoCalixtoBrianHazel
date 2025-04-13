@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Aplicación AES: Cifrado y Descifrado</title>
+  <!-- Importar CryptoJS desde CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    /* Estilos generales */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7f8;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #2d89ef;
+    }
+    nav {
+      margin-bottom: 20px;
+    }
+    nav button {
+      background: #2d89ef;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 0 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    nav button.active {
+      background: #1b5fad;
+    }
+    section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 600px;
+    }
+    textarea, input[type="password"], input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .hidden {
+      display: none;
+    }
+    .btn {
+      background: #2d89ef;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .error {
+      color: red;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Aplicación de Cifrado AES</h1>
+  <p>Seleccione la acción que desea realizar</p>
+</header>
+
+<nav>
+  <button id="btnCifrar" class="active">Cifrar</button>
+  <button id="btnDescifrar">Descifrar</button>
+</nav>
+
+<!-- Sección para cifrar -->
+<section id="sectionCifrar">
+  <h2>Cifrar Mensaje</h2>
+  <label for="mensaje">Escribe tu mensaje:</label>
+  <textarea id="mensaje" rows="6" placeholder="Ingresa el mensaje a cifrar"></textarea>
+
+  <label for="claveCifrar">Clave (16, 24 o 32 caracteres):</label>
+  <input type="password" id="claveCifrar" placeholder="Ingresa la clave">
+  <div id="errorCifrar" class="error"></div>
+
+  <button id="btnGenerarArchivo" class="btn">Cifrar y Descargar Archivo</button>
+</section>
+
+<!-- Sección para descifrar -->
+<section id="sectionDescifrar" class="hidden">
+  <h2>Descifrar Mensaje</h2>
+  <label for="archivoCifrado">Selecciona el archivo cifrado:</label>
+  <input type="file" id="archivoCifrado" accept=".txt">
+
+  <label for="claveDescifrar">Clave:</label>
+  <input type="password" id="claveDescifrar" placeholder="Ingresa la clave">
+  <div id="errorDescifrar" class="error"></div>
+
+  <button id="btnDescifrarArchivo" class="btn">Descifrar</button>
+
+  <label for="mensajeDescifrado">Mensaje Descifrado:</label>
+  <textarea id="mensajeDescifrado" rows="6" readonly placeholder="El mensaje descifrado se mostrará aquí"></textarea>
+</section>
+
+<script>
+  // Referencia a elementos
+  const btnCifrar = document.getElementById('btnCifrar');
+  const btnDescifrar = document.getElementById('btnDescifrar');
+  const sectionCifrar = document.getElementById('sectionCifrar');
+  const sectionDescifrar = document.getElementById('sectionDescifrar');
+
+  // Botones de la navegación
+  btnCifrar.addEventListener('click', () => {
+    sectionCifrar.classList.remove('hidden');
+    sectionDescifrar.classList.add('hidden');
+    btnCifrar.classList.add('active');
+    btnDescifrar.classList.remove('active');
+  });
+
+  btnDescifrar.addEventListener('click', () => {
+    sectionDescifrar.classList.remove('hidden');
+    sectionCifrar.classList.add('hidden');
+    btnDescifrar.classList.add('active');
+    btnCifrar.classList.remove('active');
+  });
+
+  // Función para validar la longitud de la clave
+  function validarClave(clave) {
+    return (clave.length === 16 || clave.length === 24 || clave.length === 32);
+  }
+
+  // Acción para cifrar y generar archivo descargable
+  document.getElementById('btnGenerarArchivo').addEventListener('click', () => {
+    const mensaje = document.getElementById('mensaje').value;
+    const clave = document.getElementById('claveCifrar').value;
+    const errorDiv = document.getElementById('errorCifrar');
+    errorDiv.textContent = '';
+
+    if (!mensaje) {
+      errorDiv.textContent = 'Debes ingresar un mensaje a cifrar.';
+      return;
+    }
+    if (!clave || !validarClave(clave)) {
+      errorDiv.textContent = 'La clave debe tener 16, 24 o 32 caracteres.';
+      return;
+    }
+
+    // Cifrar usando CryptoJS AES
+    const mensajeCifrado = CryptoJS.AES.encrypt(mensaje, clave).toString();
+
+    // Crear archivo blob y descargarlo
+    const blob = new Blob([mensajeCifrado], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mensaje-cifrado.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // Acción para leer el archivo y descifrar el mensaje
+  document.getElementById('btnDescifrarArchivo').addEventListener('click', () => {
+    const archivoInput = document.getElementById('archivoCifrado');
+    const clave = document.getElementById('claveDescifrar').value;
+    const errorDiv = document.getElementById('errorDescifrar');
+    const textareaDescifrado = document.getElementById('mensajeDescifrado');
+
+    errorDiv.textContent = '';
+    textareaDescifrado.value = '';
+
+    if (archivoInput.files.length === 0) {
+      errorDiv.textContent = 'Por favor, selecciona un archivo a descifrar.';
+      return;
+    }
+    if (!clave || !validarClave(clave)) {
+      errorDiv.textContent = 'La clave debe tener 16, 24 o 32 caracteres.';
+      return;
+    }
+
+    // Leer el contenido del archivo
+    const archivo = archivoInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const contenido = e.target.result;
+      try {
+        // Descifrar usando CryptoJS AES
+        const bytes = CryptoJS.AES.decrypt(contenido, clave);
+        const mensajeDescifrado = bytes.toString(CryptoJS.enc.Utf8);
+        if (!mensajeDescifrado) {
+          errorDiv.textContent = 'La clave es incorrecta o el archivo no es válido.';
+          return;
+        }
+        textareaDescifrado.value = mensajeDescifrado;
+      } catch (err) {
+        errorDiv.textContent = 'Error al descifrar el archivo.';
+      }
+    };
+    reader.readAsText(archivo);
+  });
+</script>
+</body>
+</html>
